@@ -4,9 +4,414 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AsteRisk</title>
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --glass: rgba(255, 255, 255, 0.05);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --muted: rgba(255, 255, 255, 0.4);
+        --muted2: rgba(255, 255, 255, 0.2);
+        --amber: #f59e0b;
+        --emerald: #10b981;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: var(--bg);
+        color: white;
+        overflow: hidden;
+      }
+
+      .screen {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      /* background blobs */
+      .blob {
+        position: absolute;
+        width: 380px;
+        height: 380px;
+        border-radius: 9999px;
+        filter: blur(120px);
+        pointer-events: none;
+      }
+      .blob.top {
+        top: -10%;
+        right: -10%;
+        background: rgba(245, 158, 11, 0.10);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      .blob.bottom {
+        bottom: -10%;
+        left: -10%;
+        background: rgba(16, 185, 129, 0.06);
+      }
+
+      @keyframes pulse {
+        0%,100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.85; }
+      }
+
+      /* glass container */
+      .card {
+        width: 320px;
+        height: 600px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(24px);
+        border-radius: 48px;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .statusbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        opacity: 0.4;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .statusbar .left {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+      }
+
+      .icons {
+        display: flex;
+        gap: 8px;
+      }
+      .icons svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .center {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        filter: blur(18px);
+        transition: all 1s ease;
+        opacity: 1;
+      }
+
+      .node-wrap {
+        position: relative;
+        width: 96px;
+        height: 96px;
+      }
+
+      .node {
+        width: 96px;
+        height: 96px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(245, 158, 11, 0.55);
+        background: rgba(0,0,0,0.4);
+        color: var(--amber);
+        transition: all 0.7s ease;
+        position: relative;
+      }
+
+      .node svg {
+        width: 44px;
+        height: 44px;
+      }
+
+      .title {
+        margin-top: 32px;
+        text-align: center;
+      }
+      .title h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .title .accent {
+        color: var(--amber);
+      }
+      .title p {
+        margin: 6px 0 0;
+        font-size: 10px;
+        opacity: 0.4;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 600;
+      }
+
+      /* terminal */
+      .bottom {
+        margin-bottom: 32px;
+      }
+
+      .terminal {
+        font-size: 11px;
+        height: 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        color: rgba(255,255,255,0.55);
+        gap: 4px;
+      }
+
+      .line {
+        opacity: 0;
+        transform: translateX(-6px);
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+
+      .line.amber { color: rgba(245,158,11,0.95); }
+      .line.green { color: rgba(16,185,129,0.95); font-weight: 800; }
+
+      @keyframes fadeIn {
+        to { opacity: 1; transform: translateX(0); }
+      }
+
+      /* progress bar */
+      .bar {
+        margin-top: 12px;
+        height: 4px;
+        width: 100%;
+        background: rgba(255,255,255,0.10);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .barFill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: var(--amber);
+        transition: width 0.2s ease-out;
+      }
+
+      /* footer */
+      .footer {
+        font-size: 9px;
+        opacity: 0.2;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        text-align: center;
+      }
+
+      /* animations */
+      @keyframes spinSlow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .spin {
+        animation: spinSlow 8s linear infinite;
+      }
+
+      @keyframes bounceShort {
+        0%,100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+      .bounce {
+        animation: bounceShort 1s ease-in-out infinite;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <div class="screen">
+      <div class="blob top"></div>
+      <div class="blob bottom"></div>
+
+      <div class="card">
+        <div class="statusbar">
+          <span class="left mono">Node VGL-043</span>
+          <div class="icons">
+            <!-- Wifi icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+              <line x1="12" y1="20" x2="12.01" y2="20" />
+            </svg>
+            <!-- Activity icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="center">
+          <div class="node-wrap">
+            <div id="ring" class="ring"></div>
+
+            <div id="node" class="node">
+              <!-- CPU icon -->
+              <svg id="mainIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <rect x="9" y="9" width="6" height="6" />
+                <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="title">
+            <h1>Aste<span class="accent">Risk</span></h1>
+            <p>Safety by Design</p>
+          </div>
+        </div>
+
+        <div class="bottom">
+          <div class="terminal mono" id="terminal"></div>
+
+          <div class="bar">
+            <div class="barFill" id="barFill"></div>
+          </div>
+        </div>
+
+        <div class="footer">Terra LLC. 2026 | AsteRISK Home 1.0.1</div>
+      </div>
+    </div>
+
+    <script>
+      // stages:
+      // 0: init
+      // 1: privacy protocol
+      // 2: db sync
+      // 3: secure
+      let stage = 0;
+      let progress = 0;
+      let interval = null;
+
+      const barFill = document.getElementById("barFill");
+      const terminal = document.getElementById("terminal");
+      const ring = document.getElementById("ring");
+      const node = document.getElementById("node");
+      const mainIcon = document.getElementById("mainIcon");
+
+      function setRing(isSecure) {
+        if (!isSecure) {
+          ring.style.background = "rgba(245,158,11,0.30)";
+          ring.style.transform = "scale(1)";
+          ring.style.animation = "pulse 2s ease-in-out infinite";
+        } else {
+          ring.style.background = "rgba(16,185,129,0.40)";
+          ring.style.transform = "scale(1.25)";
+          ring.style.animation = "none";
+        }
+      }
+
+      function setNode(isSecure) {
+        if (!isSecure) {
+          node.style.background = "rgba(0,0,0,0.4)";
+          node.style.borderColor = "rgba(245,158,11,0.55)";
+          node.style.color = "rgb(245,158,11)";
+          barFill.style.background = "rgb(245,158,11)";
+        } else {
+          node.style.background = "rgb(16,185,129)";
+          node.style.borderColor = "rgb(52,211,153)";
+          node.style.color = "black";
+          barFill.style.background = "rgb(16,185,129)";
+        }
+      }
+
+      function addLine(text, cls) {
+        const div = document.createElement("div");
+        div.className = "line" + (cls ? " " + cls : "");
+        div.textContent = text;
+        terminal.appendChild(div);
+      }
+
+      function renderTerminal() {
+        terminal.innerHTML = "";
+        if (stage >= 0) addLine("> SYST: INIT VGL-043...");
+        if (stage >= 1) addLine("> PROT: EDGE_OCR_READY");
+        if (stage >= 2) addLine("> SYNC: VIGIL_SUPA_ACTIVE", "amber");
+        if (stage >= 3) addLine("> STAT: DOMAIN SECURE", "green");
+      }
+
+      function setIconSecure(isSecure) {
+        if (!isSecure) {
+          // CPU icon + spin
+          mainIcon.innerHTML = `
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"></path>
+          `;
+          mainIcon.classList.toggle("spin", stage > 0);
+          mainIcon.classList.remove("bounce");
+        } else {
+          // shield-check icon + bounce
+          mainIcon.innerHTML = `
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          `;
+          mainIcon.classList.remove("spin");
+          mainIcon.classList.add("bounce");
+        }
+      }
+
+      function updateUI() {
+        const secure = stage >= 3;
+        setRing(secure);
+        setNode(secure);
+        setIconSecure(secure);
+        renderTerminal();
+      }
+
+      // start sequence
+      async function sequence() {
+        updateUI();
+
+        // Stage 0 -> Stage 1
+        await new Promise(r => setTimeout(r, 800));
+        stage = 1;
+        updateUI();
+
+        // progress
+        interval = setInterval(() => {
+          progress = Math.min(100, progress + 2);
+          barFill.style.width = progress + "%";
+          if (progress >= 100) clearInterval(interval);
+        }, 30);
+
+        // stage 2
+        await new Promise(r => setTimeout(r, 2000));
+        stage = 2;
+        updateUI();
+
+        // stage 3 secure
+        await new Promise(r => setTimeout(r, 1200));
+        stage = 3;
+        updateUI();
+      }
+
+      sequence();
+    </script>
   </body>
 </html>
